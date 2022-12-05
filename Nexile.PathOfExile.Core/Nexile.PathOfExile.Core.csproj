@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <LangVersion>10</LangVersion>
+        <RootNamespace>Nexile.PathOfExile</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Meigs2.Functional" Version="0.1.1-alpha20" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+      <PackageReference Include="RestEase" Version="1.5.7" />
+      <PackageReference Include="Websocket.Client" Version="4.4.43" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Nexile.Common\Nexile.Common.csproj" />
+    </ItemGroup>
+
+</Project>

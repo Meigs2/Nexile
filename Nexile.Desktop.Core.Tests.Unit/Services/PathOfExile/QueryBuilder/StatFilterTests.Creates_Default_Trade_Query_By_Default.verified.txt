@@ -1,0 +1,15 @@
+﻿{
+  query: {
+    status: {
+      option: online
+    },
+    stats: [
+      {
+        type: and
+      }
+    ]
+  },
+  sort: {
+    price: asc
+  }
+}

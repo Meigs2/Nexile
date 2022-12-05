@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Nexile.Common\Nexile.Common.csproj" />
+      <ProjectReference Include="..\Nexile.Desktop.Core\Nexile.Desktop.Core.csproj" />
+      <ProjectReference Include="..\Nexile.PathOfExile\Nexile.PathOfExile.csproj" />
+      <ProjectReference Include="..\Nexile.PoeNinja\Nexile.PoeNinja.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
+      <PackageReference Include="RestEase" Version="1.5.7" />
+      <PackageReference Include="RestEase.HttpClientFactory" Version="1.5.7" />
+      <PackageReference Include="System.Reactive" Version="4.3.2" />
+      <PackageReference Include="Websocket.Client" Version="4.4.43" />
+    </ItemGroup>
+</Project>

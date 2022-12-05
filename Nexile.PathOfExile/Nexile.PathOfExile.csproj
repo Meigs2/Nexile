@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <LangVersion>10</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Meigs2.Functional" Version="0.1.1-alpha20" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
+      <PackageReference Include="RestEase.HttpClientFactory" Version="1.5.7" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Nexile.PathOfExile.Core\Nexile.PathOfExile.Core.csproj" />
+    </ItemGroup>
+
+</Project>
