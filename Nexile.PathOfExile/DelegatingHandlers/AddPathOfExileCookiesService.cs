@@ -8,21 +8,21 @@ namespace Nexile.Infrastructure.Services.PathOfExile.DelegatingHandlers;
 
 public class AddPathOfExileCookiesService : DelegatingHandler
 {
-    private readonly IPoeSessionIdService _sessionIdService;
+    private readonly IPoeSessionIdProvider _sessionIdProvider;
 
     /// <inheritdoc />
-    public AddPathOfExileCookiesService(IPoeSessionIdService sessionIdService)
+    public AddPathOfExileCookiesService(IPoeSessionIdProvider sessionIdProvider)
     {
-        _sessionIdService = sessionIdService;
+        _sessionIdProvider = sessionIdProvider;
     }
 
     /// <inheritdoc />
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
                                                            CancellationToken cancellationToken)
     {
-        if (_sessionIdService.SessionId.IsSome)
+        if (_sessionIdProvider.SessionId.IsSome)
         {
-            request.AddCookie(new KeyValuePair<string, string>("POESESSID", _sessionIdService.SessionId.Value));
+            request.AddCookie(new KeyValuePair<string, string>("POESESSID", _sessionIdProvider.SessionId.Value));
         }
 
         return base.SendAsync(request, cancellationToken);

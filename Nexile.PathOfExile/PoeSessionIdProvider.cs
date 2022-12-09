@@ -2,9 +2,9 @@
 
 namespace Nexile.PathOfExile;
 
-public class PoeSessionIdService : IPoeSessionIdService
+public class PoeSessionIdProvider : IPoeSessionIdProvider
 {
-    public PoeSessionIdService(SessionIdOptions options)
+    public PoeSessionIdProvider(SessionIdOptions options)
     {
         SessionId = options.SessionId;
     }
@@ -12,8 +12,6 @@ public class PoeSessionIdService : IPoeSessionIdService
     /// <inheritdoc />
     public Option<string> SessionId { get; internal set; }
     
-    // expose a method to set the session id
     public void SetSessionId(string sessionId) => SessionId = sessionId;
-    // clear
-    public void ClearSessionId() => SessionId = Option<string>.None;
+    public void ClearSessionId() => SessionId = Option.None;
 }

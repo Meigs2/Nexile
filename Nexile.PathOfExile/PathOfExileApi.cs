@@ -13,43 +13,34 @@ using RestEase;
 using Websocket.Client;
 using Meigs2.Functional;
 using Meigs2.Functional.Results;
+using Nexile.PathOfExile.QueryBuilder;
 
 namespace Nexile.PathOfExile;
 
 public class PathOfExileApi : IPathOfExileApi
 {
     private readonly IOfficialTradeRestApi _restApi;
-    private readonly IPoeSessionIdService _sessionIdService;
+    private readonly IPoeSessionIdProvider _sessionIdProvider;
     private readonly ICommonRequestHeadersProvider _commonRequestHeadersProvider;
     public const string PoeLiveSearchUrl = "wss://www.pathofexile.com";
     public const string PoeWebsiteUrl = "https://www.pathofexile.com";
-    private Subject<IPathOfExileApi.LiveSearchEvent> LiveSearchSubject { get; } = new();
-    private ConcurrentDictionary<(string, string), WebsocketClient> _clients = new();
-    public List<(string, string)> ActiveSearches => _clients.Keys.ToList();
-
-    /// <summary>
-    /// Entire feed of live search events.
-    /// </summary>
-    public IObservable<IPathOfExileApi.LiveSearchEvent> LiveSearchListingNotifications => LiveSearchSubject
-        .AsObservable()
-        .Where(e => e.Type == IPathOfExileApi.LiveSearchEventType.Received);
-
-    public IObservable<IPathOfExileApi.LiveSearchEvent> LiveSearchEvents => LiveSearchSubject.AsObservable();
+    private ConcurrentDictionary<TradeSearch, LiveSearch> _subscriptions = new();
+    public List<LiveSearch> LiveSearches => _subscriptions.Values.ToList();
 
     public PathOfExileApi(IOfficialTradeRestApi restApi,
-                          IPoeSessionIdService sessionIdService,
+                          IPoeSessionIdProvider sessionIdProvider,
                           ICommonRequestHeadersProvider commonRequestHeadersProvider)
     {
         _restApi = restApi;
-        _sessionIdService = sessionIdService;
+        _sessionIdProvider = sessionIdProvider;
         _commonRequestHeadersProvider = commonRequestHeadersProvider;
     }
 
-    public async Task<Result<ExchangePostResult>> PostExchange(string query, string leagueName)
+    public async Task<Result<ExchangePostResult>> QueryExchange(ExchangeQuery searchQuery)
     {
         try
         {
-            var response = await _restApi.PostExchange(query, leagueName);
+            var response = await _restApi.PostExchange(searchQuery.QueryString, searchQuery.LeagueName);
             return GetResponseContent(response);
         }
         catch (Exception e)
@@ -58,11 +49,11 @@ public class PathOfExileApi : IPathOfExileApi
         }
     }
 
-    public async Task<Result<SearchPostResult>> PostSearch(string query, string leagueName)
+    public async Task<Result<ItemSearchPostResult>> QueryItemSearch(ItemSearchQuery itemSearchQuery)
     {
         try
         {
-            var response = await _restApi.PostSearch(query, leagueName);
+            var response = await _restApi.PostSearch(itemSearchQuery.QueryString, itemSearchQuery.LeagueName);
             return GetResponseContent(response);
         }
         catch (Exception e)
@@ -71,11 +62,11 @@ public class PathOfExileApi : IPathOfExileApi
         }
     }
 
-    public async Task<Result<SearchGetResult>> GetSearch(string resultIds, string queryId)
+    public async Task<Result<SearchGetResult>> GetItemSearchResult(TradeSearch search, Func<TradeSearch, IEnumerable<ItemSearchResultPage>> pages)
     {
         try
         {
-            var response = await _restApi.GetSearch(resultIds, queryId);
+            var response = await _restApi.GetSearch(string.Join(", ", pages(search)), search.QueryId);
             return GetResponseContent(response);
         }
         catch (Exception e)
@@ -132,68 +123,21 @@ public class PathOfExileApi : IPathOfExileApi
     /// <param name="leagueName"></param>
     /// <param name="queryId"></param>
     /// <returns></returns>
-    public async Task<Result<IObservable<IPathOfExileApi.LiveSearchEvent>>> SubscribeLiveSearch(
-        string leagueName,
-        string queryId)
+    public async Task<Result<LiveSearch>> SubscribeLiveSearch(TradeSearch query)
     {
-        var client = CreateWebsocketClient(leagueName, queryId);
-        if (_clients.ContainsKey((leagueName, queryId)))
-        {
-            // if we do, check if it's connected
-            if (_clients[(leagueName, queryId)].IsRunning)
-            {
-                // if it is, return the existing observable
-                return LiveSearchSubject.AsObservable()
-                                        .Where(e => e.LeagueName == leagueName && e.QueryId == queryId).ToResult();
-            }
-
-            // if it's not connected, remove it from the dictionary
-            _clients.TryRemove((leagueName, queryId), out var existingClient);
-            existingClient?.Dispose();
-        }
-
-        client.MessageReceived.Subscribe(msg =>
-        {
-            var liveSearchEvent
-                = new IPathOfExileApi.LiveSearchEvent(IPathOfExileApi.LiveSearchEventType.Received, leagueName, queryId,
-                                                      msg.Text);
-            LiveSearchSubject.OnNext(liveSearchEvent);
-        });
-        client.DisconnectionHappened.Subscribe(msg =>
-        {
-            if (msg.Type == DisconnectionType.Exit)
-            {
-                return;
-            }
-
-            var liveSearchEvent = new IPathOfExileApi.LiveSearchEvent(IPathOfExileApi.LiveSearchEventType.Disconnected,
-                                                                      leagueName, queryId, msg.CloseStatusDescription);
-            LiveSearchSubject.OnNext(liveSearchEvent);
-            client?.Dispose();
-        });
-        client.ReconnectionHappened.Subscribe(msg =>
-        {
-            var liveSearchEvent = new IPathOfExileApi.LiveSearchEvent(IPathOfExileApi.LiveSearchEventType.Reconnected,
-                                                                      leagueName, queryId, msg.Type.ToString());
-            if (msg.Type == ReconnectionType.Initial)
-            {
-                liveSearchEvent = new IPathOfExileApi.LiveSearchEvent(IPathOfExileApi.LiveSearchEventType.Connected,
-                                                                      leagueName, queryId, msg.Type.ToString());
-            }
-
-            LiveSearchSubject.OnNext(liveSearchEvent);
-        });
         try
         {
-            await client.StartOrFail();
+            var searchResult = await GetExistingSearchByQueryId(query.QueryId, query.QueryId);
+            if (!searchResult.IsSuccess) return searchResult;
+            var state = searchResult.Value;
+            var liveSearch = new LiveSearch(query, state);
+            _subscriptions.TryAdd(query, liveSearch);
+            return liveSearch;
         }
         catch (Exception e)
         {
             return e;
         }
-
-        _clients.TryAdd((leagueName, queryId), client);
-        return LiveSearchSubject.Where(e => e.LeagueName == leagueName && e.QueryId == queryId).ToResult();
     }
 
     /// <summary>
@@ -204,14 +148,14 @@ public class PathOfExileApi : IPathOfExileApi
     /// <returns></returns>
     public async Task<bool> UnsubscribeLiveSearch(string leagueName, string queryId)
     {
-        if (!_clients.TryRemove((leagueName, queryId), out var client)) return await Task.FromResult(false);
+        if (!_subscriptions.TryRemove((leagueName, queryId), out var client)) return await Task.FromResult(false);
         client?.Dispose();
         return await Task.FromResult(true);
     }
 
-    private WebsocketClient CreateWebsocketClient(string leagueName, string queryId)
+    private WebsocketClient CreateWebsocketClient(TradeSearchQuery searchQuery)
     {
-        return new WebsocketClient(new Uri(PoeLiveSearchUrl + $"/api/trade/live/{leagueName}/{queryId}"),
+        return new WebsocketClient(new Uri(PoeLiveSearchUrl + $"/api/trade/live/{searchQuery.LeagueName}/{searchQuery.QueryId}"),
                                    ClientFactory);
     }
 
@@ -223,7 +167,7 @@ public class PathOfExileApi : IPathOfExileApi
             client.Options.SetRequestHeader(header.Key, header.Value);
         }
 
-        client.Options.SetRequestHeader("Cookie", $"POESESSID={_sessionIdService.SessionId.Value}");
+        client.Options.SetRequestHeader("Cookie", $"POESESSID={_sessionIdProvider.SessionId.Value}");
         client.Options.SetRequestHeader("Origin", "https://www.pathofexile.com");
         client.Options.SetRequestHeader("Sec-WebSocket-Extensions", "permessage-deflate; client_max_window_bits");
         return client;
@@ -231,11 +175,25 @@ public class PathOfExileApi : IPathOfExileApi
 
     static Result<string> GetResponseStringContent<T>(Response<T> response)
     {
-        return response.StringContent;
+        try
+        {
+            return response.StringContent;
+        }
+        catch (Exception e)
+        {
+            return e;
+        }
     }
 
     static Result<T> GetResponseContent<T>(Response<T> response)
     {
-        return response.GetContent();
+        try
+        {
+            return response.GetContent();
+        }
+        catch (Exception e)
+        {
+            return e;
+        }
     }
 }

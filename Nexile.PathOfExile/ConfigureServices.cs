@@ -13,7 +13,7 @@ public static class ConfigureServices
 {
     public static IServiceCollection AddOfficialPoeApiServices(this IServiceCollection services)
     {
-        services.AddSingleton<IPoeSessionIdService, PoeSessionIdService>();
+        services.AddSingleton<IPoeSessionIdProvider, PoeSessionIdProvider>();
         services.AddSingleton<AddCommonRequestHeadersHandler>();
         services.AddSingleton<RateLimitingTrackerService>();
         

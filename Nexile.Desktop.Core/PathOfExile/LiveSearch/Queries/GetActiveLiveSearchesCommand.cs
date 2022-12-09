@@ -19,6 +19,6 @@ public class GetActiveLiveSearchesCommandHandler : IRequestHandler<GetActiveLive
     /// <inheritdoc />
     public Task<IEnumerable<ActiveLiveSearchResult>> Handle(GetActiveLiveSearchesCommand request, CancellationToken cancellationToken)
     {
-        return _api.ActiveSearches.Map(x => new ActiveLiveSearchResult(x.Item1, x.Item2)).ToTask();
+        return _api.LiveSearches.Map(x => new ActiveLiveSearchResult(x.Item1, x.Item2)).ToTask();
     }
 }

@@ -1,6 +1,5 @@
 ﻿using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using Nexile.Infrastructure.Services.PathOfExile;
 using Nexile.PathOfExile;
 using Nexile.Tests.Common;
 
@@ -72,6 +71,6 @@ public class Exchange_Api : RateLimitedServiceTestFixture
             @event.Set();
         });
         @event.WaitOne(10000);
-        Assert.IsTrue(success);
+        success.Should().BeTrue();
     }
 }

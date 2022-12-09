@@ -15,7 +15,7 @@ public interface IOfficialTradeRestApi
 
     [Post("/api/trade/search/{leagueName}")]
     [Header("Content-Type", "application/json")]
-    Task<Response<SearchPostResult>> PostSearch([Body] string query, [Path] string leagueName);
+    Task<Response<ItemSearchPostResult>> PostSearch([Body] string query, [Path] string leagueName);
 
     [Get("/api/trade/fetch/{ids}")]
     Task<Response<SearchGetResult>> GetSearch([Path("ids")] string resultIds, [Query("query")] string queryId);
@@ -26,116 +26,731 @@ public interface IOfficialTradeRestApi
 
 #region Exchange Results
 
-public record ExchangeOffer([property: JsonProperty("id")] string Id, [property: JsonProperty("item")] JObject Item,
-    [property: JsonProperty("listing")] ExchangeDetails Listing);
+public record ExchangeOffer
+{
+    public ExchangeOffer(string Id,
+                         JObject Item,
+                         ExchangeDetails Listing)
+    {
+        this.Id = Id;
+        this.Item = Item;
+        this.Listing = Listing;
+    }
 
-public record Online([property: JsonProperty("league")] string League,
-    [property: JsonProperty("status")] string Status);
+    [JsonProperty("id")]
+    public string Id { get; init; }
 
-public record Account([property: JsonProperty("name")] string Name, [property: JsonProperty("lastCharacterName")]
-    string LastCharacterName, [property: JsonProperty("online")] Online Online,
-    [property: JsonProperty("language")] string Language);
+    [JsonProperty("item")]
+    public JObject Item { get; init; }
 
-public record Exchange([property: JsonProperty("currency")] string Currency,
-    [property: JsonProperty("amount")] decimal Amount, [property: JsonProperty("whisper")] string Whisper);
+    [JsonProperty("listing")]
+    public ExchangeDetails Listing { get; init; }
+}
 
-public record ExchangeItem([property: JsonProperty("currency")] string Currency,
-    [property: JsonProperty("amount")] decimal Amount, [property: JsonProperty("stock")] int Stock,
-    [property: JsonProperty("id")] string Id, [property: JsonProperty("whisper")] string Whisper);
+public record Online
+{
+    public Online(string League,
+                  string Status)
+    {
+        this.League = League;
+        this.Status = Status;
+    }
 
-public record ExchangeDetails([property: JsonProperty("indexed")] DateTime Indexed,
-    [property: JsonProperty("account")] Account Account, [property: JsonProperty("offers")] IReadOnlyList<Offer> Offers,
-    [property: JsonProperty("whisper")] string Whisper);
+    [JsonProperty("league")]
+    public string League { get; init; }
 
-public record Offer([property: JsonProperty("exchange")] Exchange Exchange,
-    [property: JsonProperty("item")] ExchangeItem Item);
+    [JsonProperty("status")]
+    public string Status { get; init; }
+}
 
-public record ExchangePostResult([property: JsonProperty("id")] string Id,
-    [property: JsonProperty("complexity")] double? Complexity,
-    [property: JsonProperty("result")] IReadOnlyDictionary<string, ExchangeOffer> Offers,
-    [property: JsonProperty("total")] int Total);
+public record Account
+{
+    public Account(string Name,
+                   string LastCharacterName,
+                   Online Online,
+                   string Language)
+    {
+        this.Name = Name;
+        this.LastCharacterName = LastCharacterName;
+        this.Online = Online;
+        this.Language = Language;
+    }
+
+    [JsonProperty("name")]
+    public string Name { get; init; }
+
+    [JsonProperty("lastCharacterName")]
+    public string LastCharacterName { get; init; }
+
+    [JsonProperty("online")]
+    public Online Online { get; init; }
+
+    [JsonProperty("language")]
+    public string Language { get; init; }
+}
+
+public record Exchange
+{
+    public Exchange(string Currency,
+                    decimal Amount,
+                    string Whisper)
+    {
+        this.Currency = Currency;
+        this.Amount = Amount;
+        this.Whisper = Whisper;
+    }
+
+    [JsonProperty("currency")]
+    public string Currency { get; init; }
+
+    [JsonProperty("amount")]
+    public decimal Amount { get; init; }
+
+    [JsonProperty("whisper")]
+    public string Whisper { get; init; }
+}
+
+public record ExchangeItem
+{
+    public ExchangeItem(string Currency,
+                        decimal Amount,
+                        int Stock,
+                        string Id,
+                        string Whisper)
+    {
+        this.Currency = Currency;
+        this.Amount = Amount;
+        this.Stock = Stock;
+        this.Id = Id;
+        this.Whisper = Whisper;
+    }
+
+    [JsonProperty("currency")]
+    public string Currency { get; init; }
+
+    [JsonProperty("amount")]
+    public decimal Amount { get; init; }
+
+    [JsonProperty("stock")]
+    public int Stock { get; init; }
+
+    [JsonProperty("id")]
+    public string Id { get; init; }
+
+    [JsonProperty("whisper")]
+    public string Whisper { get; init; }
+}
+
+public record ExchangeDetails
+{
+    public ExchangeDetails(DateTime Indexed,
+                           Account Account,
+                           IReadOnlyList<Offer> Offers,
+                           string Whisper)
+    {
+        this.Indexed = Indexed;
+        this.Account = Account;
+        this.Offers = Offers;
+        this.Whisper = Whisper;
+    }
+
+    [JsonProperty("indexed")]
+    public DateTime Indexed { get; init; }
+
+    [JsonProperty("account")]
+    public Account Account { get; init; }
+
+    [JsonProperty("offers")]
+    public IReadOnlyList<Offer> Offers { get; init; }
+
+    [JsonProperty("whisper")]
+    public string Whisper { get; init; }
+}
+
+public record Offer
+{
+    public Offer(Exchange Exchange,
+                 ExchangeItem Item)
+    {
+        this.Exchange = Exchange;
+        this.Item = Item;
+    }
+
+    [JsonProperty("exchange")]
+    public Exchange Exchange { get; init; }
+
+    [JsonProperty("item")]
+    public ExchangeItem Item { get; init; }
+}
+
+public record ExchangePostResult
+{
+    public ExchangePostResult(string Id,
+                              decimal? Complexity,
+                              IReadOnlyDictionary<string, ExchangeOffer> Offers,
+                              int Total)
+    {
+        this.Id = Id;
+        this.Complexity = Complexity;
+        this.Offers = Offers;
+        this.Total = Total;
+    }
+
+    [JsonProperty("id")]
+    public string Id { get; init; }
+
+    [JsonProperty("complexity")]
+    public decimal? Complexity { get; init; }
+
+    [JsonProperty("result")]
+    public IReadOnlyDictionary<string, ExchangeOffer> Offers { get; init; }
+
+    [JsonProperty("total")]
+    public int Total { get; init; }
+}
 
 #endregion
 
 #region Search Results
 
-public record SearchPostResult([property: JsonProperty("id")] string QueryId,
-    [property: JsonProperty("complexity")] int Complexity,
-    [property: JsonProperty("result")] IReadOnlyList<string> Results, [property: JsonProperty("total")] int Total);
+public record ItemSearchPostResult
+{
+    public ItemSearchPostResult(string QueryId,
+                            decimal Complexity,
+                            IReadOnlyList<string> Results,
+                            int Total)
+    {
+        this.QueryId = QueryId;
+        this.Complexity = Complexity;
+        this.Results = Results;
+        this.Total = Total;
+    }
+
+    [JsonProperty("id")]
+    public string QueryId { get; init; }
+
+    [JsonProperty("complexity")]
+    public decimal Complexity { get; init; }
+
+    [JsonProperty("result")]
+    public IReadOnlyList<string> Results { get; init; }
+
+    [JsonProperty("total")]
+    public int Total { get; init; }
+}
 
 // Root myDeserializedClass = JsonConvert.DeserializeObject<Root>(myJsonResponse);
 
-public record Crafted([property: JsonProperty("name")] string Name, [property: JsonProperty("tier")] string Tier,
-    [property: JsonProperty("level")] int Level,
-    [property: JsonProperty("magnitudes")] IReadOnlyList<Magnitude> Magnitudes);
+public record Crafted
+{
+    public Crafted(string Name,
+                   string Tier,
+                   int Level,
+                   IReadOnlyList<Magnitude> Magnitudes)
+    {
+        this.Name = Name;
+        this.Tier = Tier;
+        this.Level = Level;
+        this.Magnitudes = Magnitudes;
+    }
 
-public record Explicit([property: JsonProperty("name")] string Name, [property: JsonProperty("tier")] string Tier,
-    [property: JsonProperty("level")] int Level,
-    [property: JsonProperty("magnitudes")] IReadOnlyList<Magnitude> Magnitudes);
+    [JsonProperty("name")]
+    public string Name { get; init; }
 
-public record Extended([property: JsonProperty("dps")] double Dps, [property: JsonProperty("pdps")] double Pdps,
-    [property: JsonProperty("edps")] double Edps, [property: JsonProperty("dps_aug")] bool DpsAug,
-    [property: JsonProperty("pdps_aug")] bool PdpsAug, [property: JsonProperty("mods")] Mods Mods,
-    [property: JsonProperty("hashes")] Hashes Hashes, [property: JsonProperty("text")] string Text);
+    [JsonProperty("tier")]
+    public string Tier { get; init; }
 
-public record Hashes([property: JsonProperty("explicit")] IReadOnlyList<List<JObject>> Explicit,
-    [property: JsonProperty("implicit")] IReadOnlyList<List<JObject>> Implicit,
-    [property: JsonProperty("crafted")] IReadOnlyList<List<JObject>> Crafted);
+    [JsonProperty("level")]
+    public int Level { get; init; }
 
-public record Implicit([property: JsonProperty("name")] string Name, [property: JsonProperty("tier")] string Tier,
-    [property: JsonProperty("level")] int Level,
-    [property: JsonProperty("magnitudes")] IReadOnlyList<Magnitude> Magnitudes);
+    [JsonProperty("magnitudes")]
+    public IReadOnlyList<Magnitude> Magnitudes { get; init; }
+}
 
-public record Influences([property: JsonProperty("shaper")] bool Shaper);
+public record Explicit
+{
+    public Explicit(string Name,
+                    string Tier,
+                    int Level,
+                    IReadOnlyList<Magnitude> Magnitudes)
+    {
+        this.Name = Name;
+        this.Tier = Tier;
+        this.Level = Level;
+        this.Magnitudes = Magnitudes;
+    }
 
-public record Item([property: JsonProperty("verified")] bool Verified, [property: JsonProperty("w")] int W,
-    [property: JsonProperty("h")] int H, [property: JsonProperty("icon")] string Icon,
-    [property: JsonProperty("league")] string League, [property: JsonProperty("id")] string Id,
-    [property: JsonProperty("sockets")] IReadOnlyList<Socket> Sockets, [property: JsonProperty("name")] string Name,
-    [property: JsonProperty("typeLine")] string TypeLine, [property: JsonProperty("baseType")] string BaseType,
-    [property: JsonProperty("identified")] bool Identified, [property: JsonProperty("ilvl")] int Ilvl,
-    [property: JsonProperty("note")] string Note,
-    [property: JsonProperty("properties")] IReadOnlyList<Property> Properties, [property: JsonProperty("requirements")]
-    IReadOnlyList<Requirement> Requirements, [property: JsonProperty("implicitMods")]
-    IReadOnlyList<string> ImplicitMods, [property: JsonProperty("explicitMods")]
-    IReadOnlyList<string> ExplicitMods, [property: JsonProperty("frameType")] int FrameType,
-    [property: JsonProperty("extended")] Extended Extended, [property: JsonProperty("craftedMods")]
-    IReadOnlyList<string> CraftedMods, [property: JsonProperty("flavourText")]
-    IReadOnlyList<string> FlavourText, [property: JsonProperty("corrupted")] bool? Corrupted,
-    [property: JsonProperty("influences")] Influences Influences, [property: JsonProperty("shaper")] bool? Shaper);
+    [JsonProperty("name")]
+    public string Name { get; init; }
 
-public record Listing([property: JsonProperty("method")] string Method,
-    [property: JsonProperty("indexed")] DateTime Indexed, [property: JsonProperty("stash")] Stash Stash,
-    [property: JsonProperty("whisper")] string Whisper, [property: JsonProperty("account")] Account Account,
-    [property: JsonProperty("price")] Price Price);
+    [JsonProperty("tier")]
+    public string Tier { get; init; }
 
-public record Magnitude([property: JsonProperty("hash")] string Hash, [property: JsonProperty("min")] double Min,
-    [property: JsonProperty("max")] double Max);
+    [JsonProperty("level")]
+    public int Level { get; init; }
 
-public record Mods([property: JsonProperty("explicit")] IReadOnlyList<Explicit> Explicit,
-    [property: JsonProperty("implicit")] IReadOnlyList<Implicit> Implicit,
-    [property: JsonProperty("crafted")] IReadOnlyList<Crafted> Crafted);
+    [JsonProperty("magnitudes")]
+    public IReadOnlyList<Magnitude> Magnitudes { get; init; }
+}
 
-public record Price([property: JsonProperty("tag")] string Tag, [property: JsonProperty("type")] string Type,
-    [property: JsonProperty("amount")] double Amount, [property: JsonProperty("currency")] string Currency);
+public record Extended
+{
+    public Extended(double Dps,
+                    double Pdps,
+                    double Edps,
+                    bool DpsAug,
+                    bool PdpsAug,
+                    Mods Mods,
+                    Hashes Hashes,
+                    string Text)
+    {
+        this.Dps = Dps;
+        this.Pdps = Pdps;
+        this.Edps = Edps;
+        this.DpsAug = DpsAug;
+        this.PdpsAug = PdpsAug;
+        this.Mods = Mods;
+        this.Hashes = Hashes;
+        this.Text = Text;
+    }
 
-public record Property([property: JsonProperty("name")] string Name,
-    [property: JsonProperty("values")] IReadOnlyList<List<JObject>> Values, [property: JsonProperty("displayMode")]
-    int DisplayMode, [property: JsonProperty("type")] int? Type);
+    [JsonProperty("dps")]
+    public double Dps { get; init; }
 
-public record Requirement([property: JsonProperty("name")] string Name,
-    [property: JsonProperty("values")] IReadOnlyList<List<JObject>> Values, [property: JsonProperty("displayMode")]
-    int DisplayMode, [property: JsonProperty("type")] int Type);
+    [JsonProperty("pdps")]
+    public double Pdps { get; init; }
 
-public record SearchResult([property: JsonProperty("id")] string Id,
-    [property: JsonProperty("listing")] Listing Listing, [property: JsonProperty("item")] Item Item);
+    [JsonProperty("edps")]
+    public double Edps { get; init; }
 
-public record SearchGetResult([property: JsonProperty("result")] IReadOnlyList<SearchResult> Results);
+    [JsonProperty("dps_aug")]
+    public bool DpsAug { get; init; }
 
-public record Socket([property: JsonProperty("group")] int Group, [property: JsonProperty("attr")] string Attr,
-    [property: JsonProperty("sColour")] string SColour);
+    [JsonProperty("pdps_aug")]
+    public bool PdpsAug { get; init; }
 
-public record Stash([property: JsonProperty("name")] string Name, [property: JsonProperty("x")] int X,
-    [property: JsonProperty("y")] int Y);
+    [JsonProperty("mods")]
+    public Mods Mods { get; init; }
+
+    [JsonProperty("hashes")]
+    public Hashes Hashes { get; init; }
+
+    [JsonProperty("text")]
+    public string Text { get; init; }
+}
+
+public record Hashes
+{
+    public Hashes(IReadOnlyList<List<JObject>> Explicit,
+                  IReadOnlyList<List<JObject>> Implicit,
+                  IReadOnlyList<List<JObject>> Crafted)
+    {
+        this.Explicit = Explicit;
+        this.Implicit = Implicit;
+        this.Crafted = Crafted;
+    }
+
+    [JsonProperty("explicit")]
+    public IReadOnlyList<List<JObject>> Explicit { get; init; }
+
+    [JsonProperty("implicit")]
+    public IReadOnlyList<List<JObject>> Implicit { get; init; }
+
+    [JsonProperty("crafted")]
+    public IReadOnlyList<List<JObject>> Crafted { get; init; }
+}
+
+public record Implicit
+{
+    public Implicit(string Name,
+                    string Tier,
+                    int Level,
+                    IReadOnlyList<Magnitude> Magnitudes)
+    {
+        this.Name = Name;
+        this.Tier = Tier;
+        this.Level = Level;
+        this.Magnitudes = Magnitudes;
+    }
+
+    [JsonProperty("name")]
+    public string Name { get; init; }
+
+    [JsonProperty("tier")]
+    public string Tier { get; init; }
+
+    [JsonProperty("level")]
+    public int Level { get; init; }
+
+    [JsonProperty("magnitudes")]
+    public IReadOnlyList<Magnitude> Magnitudes { get; init; }
+}
+
+public record Influences
+{
+    public Influences(bool Shaper)
+    {
+        this.Shaper = Shaper;
+    }
+
+    [JsonProperty("shaper")]
+    public bool Shaper { get; init; }
+}
+
+public record Item
+{
+    public Item(bool Verified,
+                int W,
+                int H,
+                string Icon,
+                string League,
+                string Id,
+                IReadOnlyList<Socket> Sockets,
+                string Name,
+                string TypeLine,
+                string BaseType,
+                bool Identified,
+                int Ilvl,
+                string Note,
+                IReadOnlyList<Property> Properties,
+                IReadOnlyList<Requirement> Requirements,
+                IReadOnlyList<string> ImplicitMods,
+                IReadOnlyList<string> ExplicitMods,
+                int FrameType,
+                Extended Extended,
+                IReadOnlyList<string> CraftedMods,
+                IReadOnlyList<string> FlavourText,
+                bool? Corrupted,
+                Influences Influences,
+                bool? Shaper)
+    {
+        this.Verified = Verified;
+        this.W = W;
+        this.H = H;
+        this.Icon = Icon;
+        this.League = League;
+        this.Id = Id;
+        this.Sockets = Sockets;
+        this.Name = Name;
+        this.TypeLine = TypeLine;
+        this.BaseType = BaseType;
+        this.Identified = Identified;
+        this.Ilvl = Ilvl;
+        this.Note = Note;
+        this.Properties = Properties;
+        this.Requirements = Requirements;
+        this.ImplicitMods = ImplicitMods;
+        this.ExplicitMods = ExplicitMods;
+        this.FrameType = FrameType;
+        this.Extended = Extended;
+        this.CraftedMods = CraftedMods;
+        this.FlavourText = FlavourText;
+        this.Corrupted = Corrupted;
+        this.Influences = Influences;
+        this.Shaper = Shaper;
+    }
+
+    [JsonProperty("verified")]
+    public bool Verified { get; init; }
+
+    [JsonProperty("w")]
+    public int W { get; init; }
+
+    [JsonProperty("h")]
+    public int H { get; init; }
+
+    [JsonProperty("icon")]
+    public string Icon { get; init; }
+
+    [JsonProperty("league")]
+    public string League { get; init; }
+
+    [JsonProperty("id")]
+    public string Id { get; init; }
+
+    [JsonProperty("sockets")]
+    public IReadOnlyList<Socket> Sockets { get; init; }
+
+    [JsonProperty("name")]
+    public string Name { get; init; }
+
+    [JsonProperty("typeLine")]
+    public string TypeLine { get; init; }
+
+    [JsonProperty("baseType")]
+    public string BaseType { get; init; }
+
+    [JsonProperty("identified")]
+    public bool Identified { get; init; }
+
+    [JsonProperty("ilvl")]
+    public int Ilvl { get; init; }
+
+    [JsonProperty("note")]
+    public string Note { get; init; }
+
+    [JsonProperty("properties")]
+    public IReadOnlyList<Property> Properties { get; init; }
+
+    [JsonProperty("requirements")]
+    public IReadOnlyList<Requirement> Requirements { get; init; }
+
+    [JsonProperty("implicitMods")]
+    public IReadOnlyList<string> ImplicitMods { get; init; }
+
+    [JsonProperty("explicitMods")]
+    public IReadOnlyList<string> ExplicitMods { get; init; }
+
+    [JsonProperty("frameType")]
+    public int FrameType { get; init; }
+
+    [JsonProperty("extended")]
+    public Extended Extended { get; init; }
+
+    [JsonProperty("craftedMods")]
+    public IReadOnlyList<string> CraftedMods { get; init; }
+
+    [JsonProperty("flavourText")]
+    public IReadOnlyList<string> FlavourText { get; init; }
+
+    [JsonProperty("corrupted")]
+    public bool? Corrupted { get; init; }
+
+    [JsonProperty("influences")]
+    public Influences Influences { get; init; }
+
+    [JsonProperty("shaper")]
+    public bool? Shaper { get; init; }
+}
+
+public record Listing
+{
+    public Listing(string Method,
+                   DateTime Indexed,
+                   Stash Stash,
+                   string Whisper,
+                   Account Account,
+                   Price Price)
+    {
+        this.Method = Method;
+        this.Indexed = Indexed;
+        this.Stash = Stash;
+        this.Whisper = Whisper;
+        this.Account = Account;
+        this.Price = Price;
+    }
+
+    [JsonProperty("method")]
+    public string Method { get; init; }
+
+    [JsonProperty("indexed")]
+    public DateTime Indexed { get; init; }
+
+    [JsonProperty("stash")]
+    public Stash Stash { get; init; }
+
+    [JsonProperty("whisper")]
+    public string Whisper { get; init; }
+
+    [JsonProperty("account")]
+    public Account Account { get; init; }
+
+    [JsonProperty("price")]
+    public Price Price { get; init; }
+}
+
+public record Magnitude
+{
+    public Magnitude(string Hash,
+                     double Min,
+                     double Max)
+    {
+        this.Hash = Hash;
+        this.Min = Min;
+        this.Max = Max;
+    }
+
+    [JsonProperty("hash")]
+    public string Hash { get; init; }
+
+    [JsonProperty("min")]
+    public double Min { get; init; }
+
+    [JsonProperty("max")]
+    public double Max { get; init; }
+}
+
+public record Mods
+{
+    public Mods(IReadOnlyList<Explicit> Explicit,
+                IReadOnlyList<Implicit> Implicit,
+                IReadOnlyList<Crafted> Crafted)
+    {
+        this.Explicit = Explicit;
+        this.Implicit = Implicit;
+        this.Crafted = Crafted;
+    }
+
+    [JsonProperty("explicit")]
+    public IReadOnlyList<Explicit> Explicit { get; init; }
+
+    [JsonProperty("implicit")]
+    public IReadOnlyList<Implicit> Implicit { get; init; }
+
+    [JsonProperty("crafted")]
+    public IReadOnlyList<Crafted> Crafted { get; init; }
+}
+
+public record Price
+{
+    public Price(string Tag,
+                 string Type,
+                 double Amount,
+                 string Currency)
+    {
+        this.Tag = Tag;
+        this.Type = Type;
+        this.Amount = Amount;
+        this.Currency = Currency;
+    }
+
+    [JsonProperty("tag")]
+    public string Tag { get; init; }
+
+    [JsonProperty("type")]
+    public string Type { get; init; }
+
+    [JsonProperty("amount")]
+    public double Amount { get; init; }
+
+    [JsonProperty("currency")]
+    public string Currency { get; init; }
+}
+
+public record Property
+{
+    public Property(string Name,
+                    IReadOnlyList<List<JObject>> Values,
+                    int DisplayMode,
+                    int? Type)
+    {
+        this.Name = Name;
+        this.Values = Values;
+        this.DisplayMode = DisplayMode;
+        this.Type = Type;
+    }
+
+    [JsonProperty("name")]
+    public string Name { get; init; }
+
+    [JsonProperty("values")]
+    public IReadOnlyList<List<JObject>> Values { get; init; }
+
+    [JsonProperty("displayMode")]
+    public int DisplayMode { get; init; }
+
+    [JsonProperty("type")]
+    public int? Type { get; init; }
+}
+
+public record Requirement
+{
+    public Requirement(string Name,
+                       IReadOnlyList<List<JObject>> Values,
+                       int DisplayMode,
+                       int Type)
+    {
+        this.Name = Name;
+        this.Values = Values;
+        this.DisplayMode = DisplayMode;
+        this.Type = Type;
+    }
+
+    [JsonProperty("name")]
+    public string Name { get; init; }
+
+    [JsonProperty("values")]
+    public IReadOnlyList<List<JObject>> Values { get; init; }
+
+    [JsonProperty("displayMode")]
+    public int DisplayMode { get; init; }
+
+    [JsonProperty("type")]
+    public int Type { get; init; }
+}
+
+public record SearchResult
+{
+    public SearchResult(string Id,
+                        Listing Listing,
+                        Item Item)
+    {
+        this.Id = Id;
+        this.Listing = Listing;
+        this.Item = Item;
+    }
+
+    [JsonProperty("id")]
+    public string Id { get; init; }
+
+    [JsonProperty("listing")]
+    public Listing Listing { get; init; }
+
+    [JsonProperty("item")]
+    public Item Item { get; init; }
+}
+
+public record SearchGetResult
+{
+    public SearchGetResult(IReadOnlyList<SearchResult> Results)
+    {
+        this.Results = Results;
+    }
+
+    [JsonProperty("result")]
+    public IReadOnlyList<SearchResult> Results { get; init; }
+}
+
+public record Socket
+{
+    public Socket(int Group,
+                  string Attr,
+                  string SColour)
+    {
+        this.Group = Group;
+        this.Attr = Attr;
+        this.SColour = SColour;
+    }
+
+    [JsonProperty("group")]
+    public int Group { get; init; }
+
+    [JsonProperty("attr")]
+    public string Attr { get; init; }
+
+    [JsonProperty("sColour")]
+    public string SColour { get; init; }
+}
+
+public record Stash
+{
+    public Stash(string Name,
+                 int X,
+                 int Y)
+    {
+        this.Name = Name;
+        this.X = X;
+        this.Y = Y;
+    }
+
+    [JsonProperty("name")]
+    public string Name { get; init; }
+
+    [JsonProperty("x")]
+    public int X { get; init; }
+
+    [JsonProperty("y")]
+    public int Y { get; init; }
+}
 
 #endregion
