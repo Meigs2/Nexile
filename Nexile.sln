@@ -27,7 +27,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{5A8973B6-07F9-42C7-93F8-9574CEEDA147}"
 	ProjectSection(SolutionItems) = preProject
 		readme.md = readme.md
-		SessionId.sh = SessionId.sh
 		secrets.sh = secrets.sh
 	EndProjectSection
 EndProject
