@@ -62,6 +62,7 @@ public class Exchange_Api : RateLimitedServiceTestFixture
         var search = await _poeService.CreateItemSearch(ClawQuery);
         search.IsSuccess.Should().BeTrue();
         search.Log();
+        
         var result = await _poeService.GetItemSearchResults(search.Value);
         result.IsSuccess.Should().BeTrue();
         result.Log();

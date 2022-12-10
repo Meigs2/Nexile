@@ -15,7 +15,7 @@ public abstract class RateLimitedServiceTestFixture
                                                                .AddUserSecrets(typeof(Secrets).Assembly)
                                                                .Build();
 
-        public static string ProvidedSessionId => Configuration["PathOfExileApiSessionId"];
+        public static string ProvidedSessionId => Configuration["PathOfExileApiSessionId"] ?? throw new Exception("A session ID must be set to run Nexile's infrastructure tests. Please see the README.md for more information.");
     }
 
     [OneTimeSetUp]
