@@ -15,7 +15,7 @@ public interface IOfficialTradeRestApi
 
     [Post("/api/trade/search/{leagueName}")]
     [Header("Content-Type", "application/json")]
-    Task<Response<ItemSearchPostResult>> PostSearch([Body] string query, [Path] string leagueName);
+    Task<Response<ItemSearch>> PostSearch([Body] string query, [Path] string leagueName);
 
     [Get("/api/trade/fetch/{ids}")]
     Task<Response<SearchGetResult>> GetSearch([Path("ids")] string resultIds, [Query("query")] string queryId);
@@ -24,7 +24,7 @@ public interface IOfficialTradeRestApi
     Task<Response<string>> GetExistingSearch([Path] string leagueName, [Path] string queryId);
 }
 
-#region Exchange Results
+#region Exchange ListingIds
 
 public record ExchangeOffer
 {
@@ -211,11 +211,11 @@ public record ExchangePostResult
 
 #endregion
 
-#region Search Results
+#region Search ListingIds
 
-public record ItemSearchPostResult
+public record ItemSearch
 {
-    public ItemSearchPostResult(string QueryId,
+    public ItemSearch(string QueryId,
                             decimal Complexity,
                             IReadOnlyList<string> Results,
                             int Total)
@@ -709,6 +709,13 @@ public record SearchGetResult
 
     [JsonProperty("result")]
     public IReadOnlyList<SearchResult> Results { get; init; }
+    
+    public SearchGetResult Join(SearchGetResult next)
+    {
+        var results = new List<SearchResult>(Results);
+        results.AddRange(next.Results);
+        return new SearchGetResult(results);
+    }
 }
 
 public record Socket

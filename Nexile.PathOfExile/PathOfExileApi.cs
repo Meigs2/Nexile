@@ -2,9 +2,8 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Net.WebSockets;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
@@ -12,8 +11,8 @@ using Nexile.Common.Interfaces;
 using RestEase;
 using Websocket.Client;
 using Meigs2.Functional;
+using Meigs2.Functional.Common;
 using Meigs2.Functional.Results;
-using Nexile.PathOfExile.QueryBuilder;
 
 namespace Nexile.PathOfExile;
 
@@ -28,79 +27,90 @@ public class PathOfExileApi : IPathOfExileApi
     public List<LiveSearch> LiveSearches => _subscriptions.Values.ToList();
 
     public PathOfExileApi(IOfficialTradeRestApi restApi,
-                          IPoeSessionIdProvider sessionIdProvider,
-                          ICommonRequestHeadersProvider commonRequestHeadersProvider)
+        IPoeSessionIdProvider sessionIdProvider,
+        ICommonRequestHeadersProvider commonRequestHeadersProvider)
     {
         _restApi = restApi;
         _sessionIdProvider = sessionIdProvider;
         _commonRequestHeadersProvider = commonRequestHeadersProvider;
     }
 
-    public async Task<Result<ExchangePostResult>> QueryExchange(ExchangeQuery searchQuery)
+    public async Task<Result<ExchangePostResult>> SearchExchange(ExchangeQuery query)
     {
         try
         {
-            var response = await _restApi.PostExchange(searchQuery.QueryString, searchQuery.LeagueName);
+            var response = await _restApi.PostExchange(query.QueryString, query.LeagueName);
             return GetResponseContent(response);
         }
-        catch (Exception e)
-        {
-            return e;
-        }
+        catch (Exception e) { return e; }
     }
 
-    public async Task<Result<ItemSearchPostResult>> QueryItemSearch(ItemSearchQuery itemSearchQuery)
+    public async Task<Result<TradeSearch>> CreateItemSearch(ItemSearchQuery query)
     {
         try
         {
-            var response = await _restApi.PostSearch(itemSearchQuery.QueryString, itemSearchQuery.LeagueName);
-            return GetResponseContent(response);
-        }
-        catch (Exception e)
-        {
-            return e;
-        }
-    }
-
-    public async Task<Result<SearchGetResult>> GetItemSearchResult(TradeSearch search, Func<TradeSearch, IEnumerable<ItemSearchResultPage>> pages)
-    {
-        try
-        {
-            var response = await _restApi.GetSearch(string.Join(", ", pages(search)), search.QueryId);
-            return GetResponseContent(response);
-        }
-        catch (Exception e)
-        {
-            return e;
-        }
-    }
-
-    public async Task<Result<string>> GetExistingSearchByQueryId(string leagueName, string queryId)
-    {
-        try
-        {
-            var searchResult = await _restApi.GetExistingSearch(leagueName, queryId);
-            var response = GetResponseStringContent(searchResult);
-            if (!response.IsSuccess) return Result.Failure("Failed to get existing search by query id.");
-            var result = response.Value;
-            if (result.Contains("No search found"))
+            // remove all the query string's whitespace characters
+            var response = await _restApi.PostSearch(query.QueryString, query.LeagueName);
+            var itemSearchResult = GetResponseContent(response);
+            if (itemSearchResult.IsFailure) return Result.Failure(itemSearchResult.Errors);
+            var itemSearch = itemSearchResult.Value;
+            return new TradeSearch
             {
-                return Result.Failure("No search found");
+                OriginalQuery = query,
+                QueryId = itemSearch.QueryId,
+                Complexity = itemSearch.Complexity,
+                NumberOfResults = itemSearch.Total,
+                ListingIds = itemSearch.Results
+            };
+        }
+        catch (Exception e) { return e; }
+    }
+
+    public async Task<Result<SearchGetResult>> GetItemSearchResults(TradeSearch search, int numberOfResults = 10)
+    {
+        try
+        {
+            // numberOfResults is the number of results the caller wants at the END, however the POE api only allows you to get the first 10 results
+            // per request. So, loop and pagenate until we have enough results.
+            var result = new SearchGetResult(new List<SearchResult>());
+            for (var i = 0; i < numberOfResults; i += 10)
+            {
+                var response =
+                    await _restApi.GetSearch(string.Join(",", search.ListingIds.Take(10).Skip(i)), search.QueryId);
+                var searchResult = GetResponseContent(response);
+                if (searchResult.IsFailure) { return result.ToResult().WithErrors(searchResult.Errors); }
+
+                result = result.Join(result);
             }
 
-            return ExtractStateFromJsonString(response.Value);
+            return result;
         }
-        catch (Exception e)
-        {
-            return e;
-        }
+        catch (Exception e) { return e; }
     }
 
-    static Option<string> ExtractTradeSiteJsonFromHtml(string arg)
+    public async Task<Result<string>> QueryExistingSearch(TradeSearch existingSearch)
+    {
+        try
+        {
+            var searchResult =
+                await _restApi.GetExistingSearch(existingSearch.OriginalQuery.LeagueName, existingSearch.QueryId);
+            var response = GetResponseStringContent(searchResult);
+            if (!response.IsSuccess) return Result.Failure("Failed to get existing search by search id.");
+            var html = response.Value;
+            if (html.Contains("No search found")) { return Result.Failure("No search found"); }
+
+            var json = ExtractTradeSiteJsonFromHtml(html);
+            if (json == null) return Result.Failure("Failed to extract json from html");
+            return ExtractStateFromJsonString(json.Value);
+        }
+        catch (Exception e) { return e; }
+    }
+
+    static Result<string> ExtractTradeSiteJsonFromHtml(string arg)
     {
         var regex = new Regex(@"function\(t\)\{    t\(((.|\n)*)\)\;\}\)\;\}\);");
         var match = regex.Match(arg);
-        return match.Success ? match.Groups[1].Value.ToSome() : Option<string>.None;
+        return match.Success ? match.Groups[1].Value : Result.Failure("Failed to extract json from trade site HTML.");
     }
 
     static Result<string> ExtractStateFromJsonString(string json)
@@ -109,12 +119,10 @@ public class PathOfExileApi : IPathOfExileApi
         try
         {
             var jObject = JObject.Parse(json);
-            return jObject["state"].ToString();
+            var rawJson = jObject["state"].ToString();
+            return new Regex(@"\s+").Replace(rawJson, "");
         }
-        catch (Exception e)
-        {
-            return e;
-        }
+        catch (Exception e) { return e; }
     }
 
     /// <summary>
@@ -123,40 +131,22 @@ public class PathOfExileApi : IPathOfExileApi
     /// <param name="leagueName"></param>
     /// <param name="queryId"></param>
     /// <returns></returns>
-    public async Task<Result<LiveSearch>> SubscribeLiveSearch(TradeSearch query)
+    public Result<LiveSearch> SubscribeLiveSearch(TradeSearch search)
     {
         try
         {
-            var searchResult = await GetExistingSearchByQueryId(query.QueryId, query.QueryId);
-            if (!searchResult.IsSuccess) return searchResult;
-            var state = searchResult.Value;
-            var liveSearch = new LiveSearch(query, state);
-            _subscriptions.TryAdd(query, liveSearch);
+            var liveSearch = new LiveSearch(CreateWebsocketClient(search));
+            _subscriptions.TryAdd(search, liveSearch);
             return liveSearch;
         }
-        catch (Exception e)
-        {
-            return e;
-        }
+        catch (Exception e) { return e; }
     }
 
-    /// <summary>
-    /// Returns an observable that will emit events specific to the given queryId.
-    /// </summary>
-    /// <param name="leagueName"></param>
-    /// <param name="queryId"></param>
-    /// <returns></returns>
-    public async Task<bool> UnsubscribeLiveSearch(string leagueName, string queryId)
+    private WebsocketClient CreateWebsocketClient(TradeSearch searchQuery)
     {
-        if (!_subscriptions.TryRemove((leagueName, queryId), out var client)) return await Task.FromResult(false);
-        client?.Dispose();
-        return await Task.FromResult(true);
-    }
-
-    private WebsocketClient CreateWebsocketClient(TradeSearchQuery searchQuery)
-    {
-        return new WebsocketClient(new Uri(PoeLiveSearchUrl + $"/api/trade/live/{searchQuery.LeagueName}/{searchQuery.QueryId}"),
-                                   ClientFactory);
+        return new WebsocketClient(
+            new Uri(PoeLiveSearchUrl + $"/api/trade/live/{searchQuery.LeagueName}/{searchQuery.QueryId}"),
+            ClientFactory);
     }
 
     private ClientWebSocket ClientFactory()
@@ -173,27 +163,39 @@ public class PathOfExileApi : IPathOfExileApi
         return client;
     }
 
-    static Result<string> GetResponseStringContent<T>(Response<T> response)
+    public static Result<string> GetResponseStringContent<T>(Response<T> response)
     {
         try
         {
+            if (!response.ResponseMessage.IsSuccessStatusCode)
+            {
+                return new HttpResponseError(response.ResponseMessage);
+            }
+
             return response.StringContent;
         }
-        catch (Exception e)
-        {
-            return e;
-        }
+        catch (Exception e) { return e; }
     }
 
-    static Result<T> GetResponseContent<T>(Response<T> response)
+    public static Result<T> GetResponseContent<T>(Response<T> response)
     {
         try
         {
+            if (!response.ResponseMessage.IsSuccessStatusCode)
+            {
+                return new HttpResponseError(response.ResponseMessage);
+            }
+
             return response.GetContent();
         }
-        catch (Exception e)
-        {
-            return e;
-        }
+        catch (Exception e) { return e; }
+    }
+}
+
+public record HttpResponseError : UnexpectedError
+{
+    public HttpResponseError(HttpResponseMessage message) : base(
+        "The HTTP request failed with status code " + message.StatusCode + " (" + message.ReasonPhrase + ")")
+    {
     }
 }

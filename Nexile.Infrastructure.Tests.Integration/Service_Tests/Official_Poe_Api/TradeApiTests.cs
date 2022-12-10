@@ -16,61 +16,54 @@ public class Exchange_Api : RateLimitedServiceTestFixture
         _poeService = ServiceProvider.GetService<PathOfExileApi>() ?? throw new InvalidOperationException();
     }
 
-    [Test]
-    public async Task Can_Post_Exchange()
+    private ExchangeQuery DivToChaosExchange = new ExchangeQuery() with
     {
-        var response = await _poeService.PostExchange(
-            "{\"query\":{\"status\":{\"option\":\"online\"},\"have\":[\"divine\"],\"want\":[\"chaos\"]},\"sort\":{\"have\":\"asc\"},\"engine\":\"new\"}",
-            "Standard");
+        QueryString =
+        "{\"query\":{\"status\":{\"option\":\"online\"},\"have\":[\"divine\"],\"want\":[\"chaos\"]},\"sort\":{\"have\":\"asc\"},\"engine\":\"new\"}",
+        LeagueName = "Standard"
+    };
+
+    [Test]
+    public async Task Can_Search_Exchange()
+    {
+        var response = await _poeService.SearchExchange(DivToChaosExchange);
         response.IsSuccess.Should().BeTrue();
         response.Log();
     }
 
-    [Test]
-    public async Task Can_Post_And_Get_Results_Search()
+    public static ItemSearchQuery ClawQuery = new ItemSearchQuery() with
     {
-        var response = await _poeService.PostSearch(
-            "{\"query\":{\"status\":{\"option\":\"online\"},\"type\":\"Imperial Claw\",\"stats\":[{\"type\":\"and\",\"filters\":[],\"disabled\":false}]},\"sort\":{\"price\":\"asc\"}}",
-            "Standard");
-        response.IsSuccess.Should().BeTrue();
-        response.Log();
-    }
+        QueryString =
+        "{\"query\":{\"status\":{\"option\":\"online\"},\"type\":\"Imperial Claw\",\"stats\":[{\"type\":\"and\",\"filters\":[],\"disabled\":false}]},\"sort\":{\"price\":\"asc\"}}",
+        LeagueName = "Standard"
+    };
+
+    public static TradeSearch ClawQuerySearch = new() { OriginalQuery = ClawQuery, Complexity = 4, QueryId = "m4kwH6" };
 
     [Test]
-    public async Task Can_Get_Existing_Query_From_Query_Id()
+    public async Task Can_Create_Item_Search()
     {
-        var response = await _poeService.GetExistingSearchByQueryId("Standard", "E4QrQLu5");
-        response.IsSuccess.Should().BeTrue();
-        response.Log();
-    }
-
-    [Test]
-    public async Task Can_Subscribe_And_Receive_Live_Search_Results()
-    {
-        var success = false;
-        _poeService.LiveSearchEvents.Subscribe(e => e.Log());
-        var result = await _poeService.SubscribeLiveSearch("Kalandra", "LgvZCn");
+        var result = await _poeService.CreateItemSearch(ClawQuery);
         result.IsSuccess.Should().BeTrue();
         result.Log();
     }
-    
+
     [Test]
-    public async Task Can_Unsubscribe_From_Live_Search()
+    public async Task Can_Search_Existing_Query()
     {
-        var success = false;
-        var search = ("Kalandra", "LgvZCn");
-        var @event = new ManualResetEvent(false);
-        _poeService.LiveSearchEvents.Subscribe(e => e.Log());
-        var result = await _poeService.SubscribeLiveSearch(search.Item1, search.Item2);
+        var queryString = await _poeService.QueryExistingSearch(ClawQuerySearch);
+        queryString.IsSuccess.Should().BeTrue();
+        queryString.Log();
+    }
+
+    [Test]
+    public async Task Can_Get_Items_From_Search_Result()
+    {
+        var search = await _poeService.CreateItemSearch(ClawQuery);
+        search.IsSuccess.Should().BeTrue();
+        search.Log();
+        var result = await _poeService.GetItemSearchResults(search.Value);
         result.IsSuccess.Should().BeTrue();
-        result.Value.Subscribe(e =>
-        {
-            e.Log();
-            success = _poeService.UnsubscribeLiveSearch(search.Item1, search.Item2).Result;
-            success.Log();
-            @event.Set();
-        });
-        @event.WaitOne(10000);
-        success.Should().BeTrue();
+        result.Log();
     }
 }

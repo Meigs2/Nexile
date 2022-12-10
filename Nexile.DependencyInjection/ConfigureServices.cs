@@ -1,7 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Nexile.PathOfExile;
 
-namespace Nexile.Infrastructure;
+// ReSharper disable once CheckNamespace
+namespace System;
 
 public static class ConfigureServices
 {

@@ -17,7 +17,7 @@ public class RateLimitingTrackerService : DelegatingHandler
                                                            CancellationToken cancellationToken)
     {
         var a = new StackTrace(true);
-        var method = (a.GetFrames())
+        var method = a.GetFrames()
                       .FirstOrDefault(x => x?.GetMethod()?.GetCustomAttributes<RateLimitedAttribute>() is not null)
                       ?.GetMethod();
         

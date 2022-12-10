@@ -8,7 +8,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Nexile.Common\Nexile.Common.csproj" />
-      <ProjectReference Include="..\Nexile.Desktop.Core\Nexile.Desktop.Core.csproj" />
       <ProjectReference Include="..\Nexile.PathOfExile\Nexile.PathOfExile.csproj" />
       <ProjectReference Include="..\Nexile.PoeNinja\Nexile.PoeNinja.csproj" />
     </ItemGroup>

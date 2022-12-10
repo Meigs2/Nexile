@@ -14,20 +14,28 @@ namespace Nexile.PathOfExile;
 
 public interface IPathOfExileApi
 {
-    Task<Result<ExchangePostResult>> QueryExchange(ExchangeQuery searchQuery);
-    Task<Result<ItemSearchPostResult>> QueryItemSearch(ItemSearchQuery itemSearchQuery);
-    Task<Result<SearchGetResult>> GetItemSearchResult(ItemSearchResultPage itemSearch);
-    Task<Result<string>> GetExistingSearchByQueryId(TradeSearch existingSearch);
+    Task<Result<ExchangePostResult>> SearchExchange(ExchangeQuery query);
+    Task<Result<TradeSearch>> CreateItemSearch(ItemSearchQuery query);
+    Task<Result<SearchGetResult>> GetItemSearchResults(TradeSearch search, int numberOfResults = 10);
+    Task<Result<string>> QueryExistingSearch(TradeSearch existingSearch);
+    
     List<LiveSearch> LiveSearches { get; }
-    Task<Result<LiveSearch>> SubscribeLiveSearch(string leagueName, string queryId);
+    Result<LiveSearch> SubscribeLiveSearch(TradeSearch search);
+}
+
+public record ItemSearchQuery
+{
+    public string LeagueName { get; init; }
+    public string QueryString { get; init; }
 }
 
 public record TradeSearch
 {
     public string QueryId { get; init; }
     public decimal? Complexity { get; init; }
-    public ItemSearchQuery Query { get; init; }
-    public IReadOnlyList<ItemSearchResultPage> Results { get; init; }
+    public string LeagueName => OriginalQuery?.LeagueName;
+    public ItemSearchQuery OriginalQuery { get; init; }
+    public IReadOnlyList<string> ListingIds { get; init; }
     public int NumberOfResults { get; init; }
 }
 
@@ -40,15 +48,9 @@ public record ExchangeSearch
     public int NumberOfResults { get; init; }
 }
 
-public record ItemSearchResultPage
+public record SearchResultItemId
 {
-    public string PageId { get; init; }
-}
-
-public record ItemSearchQuery
-{
-    public string LeagueName { get; init; }
-    public string QueryString { get; init; }
+    public string ItemId { get; init; }
 }
 
 public record ExchangeQuery
@@ -56,21 +58,6 @@ public record ExchangeQuery
     public string LeagueName { get; init; }
     public string QueryString { get; init; }
 } 
-
-public static class TradeQueryExtensions
-{
-    public static TradeSearch ToTradeResult(this ItemSearchQuery query, ItemSearchPostResult result)
-    {
-        return new TradeSearch
-               {
-                   Query = query,
-                   QueryId = result.QueryId,
-                   Complexity = result.Complexity,
-                   Results = result.Results.Select(x => new ItemSearchResultPage { PageId = x }).ToList(),
-                   NumberOfResults = result.Total
-               };
-    }
-}
 
 public record LiveSearchEvent : Enumeration<LiveSearchEvent, int>
 {
@@ -91,7 +78,7 @@ public record LiveSearch : IObservable<LiveSearchEvent>, IDisposable
     protected Subject<LiveSearchEvent> Subject { get; } = new();
     public WebsocketClient Client { get; init; }
 
-    protected LiveSearch(WebsocketClient client)
+    public LiveSearch(WebsocketClient client)
     {
         Client = client;
         client.MessageReceived.Subscribe(x => Subject.OnNext(LiveSearchEvent.MessageReceived with { Message = x.Text }));
