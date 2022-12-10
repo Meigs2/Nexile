@@ -22,9 +22,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Path Of Exile", "Path Of Ex
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Poe Ninja", "Poe Ninja", "{2BDEBA44-25CE-4E42-8392-F5D3B353296E}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = " Desktop", " Desktop", "{687A502D-672B-46B4-BF00-BF0E147BAB9F}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nexile.DependencyInjection", "Nexile.DependencyInjection\Nexile.DependencyInjection.csproj", "{5B2EE900-AF16-440B-A763-5FE690D6AE62}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{5A8973B6-07F9-42C7-93F8-9574CEEDA147}"
+	ProjectSection(SolutionItems) = preProject
+		readme.md = readme.md
+		SessionId.sh = SessionId.sh
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -75,7 +79,6 @@ Global
 		{2BDEBA44-25CE-4E42-8392-F5D3B353296E} = {505CBB39-75DC-4CA3-97FB-D9CD774DCBAD}
 		{28CD1813-0688-4258-8345-437AA323A95E} = {2BDEBA44-25CE-4E42-8392-F5D3B353296E}
 		{1EDD3B90-C349-471E-9053-EA8F12DAF339} = {2BDEBA44-25CE-4E42-8392-F5D3B353296E}
-		{687A502D-672B-46B4-BF00-BF0E147BAB9F} = {505CBB39-75DC-4CA3-97FB-D9CD774DCBAD}
 		{5B2EE900-AF16-440B-A763-5FE690D6AE62} = {505CBB39-75DC-4CA3-97FB-D9CD774DCBAD}
 	EndGlobalSection
 EndGlobal
