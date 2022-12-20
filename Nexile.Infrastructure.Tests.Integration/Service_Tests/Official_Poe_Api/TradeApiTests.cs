@@ -16,10 +16,10 @@ public class Exchange_Api : RateLimitedServiceTestFixture
         _poeService = ServiceProvider.GetService<PathOfExileApi>() ?? throw new InvalidOperationException();
     }
 
-    private ExchangeQuery DivToChaosExchange = new ExchangeQuery() with
+    private ExchangeQuery DivToChaosExchange = new()
     {
         QueryString =
-        "{\"query\":{\"status\":{\"option\":\"online\"},\"have\":[\"divine\"],\"want\":[\"chaos\"]},\"sort\":{\"have\":\"asc\"},\"engine\":\"new\"}",
+            "{\"query\":{\"status\":{\"option\":\"online\"},\"have\":[\"divine\"],\"want\":[\"chaos\"]},\"sort\":{\"have\":\"asc\"},\"engine\":\"new\"}",
         LeagueName = "Standard"
     };
 
@@ -31,10 +31,10 @@ public class Exchange_Api : RateLimitedServiceTestFixture
         response.Log();
     }
 
-    public static ItemSearchQuery ClawQuery = new ItemSearchQuery() with
+    public static ItemSearchQuery ClawQuery = new()
     {
         QueryString =
-        "{\"query\":{\"status\":{\"option\":\"online\"},\"type\":\"Imperial Claw\",\"stats\":[{\"type\":\"and\",\"filters\":[],\"disabled\":false}]},\"sort\":{\"price\":\"asc\"}}",
+            "{\"query\":{\"status\":{\"option\":\"online\"},\"type\":\"Imperial Claw\",\"stats\":[{\"type\":\"and\",\"filters\":[],\"disabled\":false}]},\"sort\":{\"price\":\"asc\"}}",
         LeagueName = "Standard"
     };
 

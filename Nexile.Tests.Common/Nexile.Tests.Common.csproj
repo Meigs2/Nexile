@@ -7,7 +7,7 @@
 
     <ItemGroup>
       <PackageReference Include="FluentAssertions" Version="6.7.0" />
-      <PackageReference Include="Meigs2.Functional" Version="0.1.1-alpha20" />
+      <PackageReference Include="Meigs2.Functional" Version="0.1.1-alpha21" />
       <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
       <PackageReference Include="NUnit" Version="3.13.3" />
     </ItemGroup>

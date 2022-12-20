@@ -70,8 +70,6 @@ public class PathOfExileApi : IPathOfExileApi
     {
         try
         {
-            // numberOfResults is the number of results the caller wants at the END, however the POE api only allows you to get the first 10 results
-            // per request. So, loop and pagenate until we have enough results.
             var result = new SearchGetResult(new List<SearchResult>());
             for (var i = 0; i < numberOfResults; i += 10)
             {
