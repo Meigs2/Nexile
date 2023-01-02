@@ -8,10 +8,10 @@ namespace Nexile.Infrastructure.Services.PathOfExile.DelegatingHandlers;
 
 public class AddPathOfExileCookiesService : DelegatingHandler
 {
-    private readonly IPoeSessionIdProvider _sessionIdProvider;
+    private readonly ISessionIdProvider _sessionIdProvider;
 
     /// <inheritdoc />
-    public AddPathOfExileCookiesService(IPoeSessionIdProvider sessionIdProvider)
+    public AddPathOfExileCookiesService(ISessionIdProvider sessionIdProvider)
     {
         _sessionIdProvider = sessionIdProvider;
     }

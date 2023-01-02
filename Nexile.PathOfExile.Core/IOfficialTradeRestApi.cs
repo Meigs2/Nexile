@@ -1,9 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading;
 using System.Threading.Tasks;
+using Meigs2.Functional;
+using Meigs2.Functional.Common;
+using Meigs2.Functional.Enumeration;
+using Meigs2.Functional.Results;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestEase;
+using static Meigs2.Functional.F;
+using F = Meigs2.Functional.F;
 
 namespace Nexile.PathOfExile;
 
@@ -22,15 +32,249 @@ public interface IOfficialTradeRestApi
 
     [Get("/trade/search/{leagueName}/{queryId}")]
     Task<Response<string>> GetExistingSearch([Path] string leagueName, [Path] string queryId);
+
+    [Get("/trade/data/items")]
+    Task<Response<ItemCategoryResult>> GetItemData();
+
+    [Get("/api/trade/data/stats")]
+    Task<Response<ItemStatResult>> GetItemStats();
+
+    [Get("/api/trade/data/static")]
+    Task<Response<StaticDataResult>> GetStaticData();
+}
+
+// Root myDeserializedClass = JsonConvert.DeserializeObject<Root>(myJsonResponse);
+public class Entry
+{
+    [JsonProperty("name")]
+    public string Name { get; set; }
+
+    [JsonProperty("type")]
+    public string Type { get; set; }
+
+    [JsonProperty("text")]
+    public string Text { get; set; }
+
+    [JsonProperty("flags")]
+    public ItemFlag ItemFlag { get; set; }
+
+    [JsonProperty("disc")]
+    public string Disc { get; set; }
+}
+
+public class ItemFlag
+{
+    [JsonProperty("unique")]
+    public bool Unique { get; set; }
+}
+
+public class ItemCategory
+{
+    [JsonProperty("id")]
+    public string Id { get; set; }
+
+    [JsonProperty("label")]
+    public string Label { get; set; }
+
+    [JsonProperty("entries")]
+    public List<Entry> Entries { get; set; }
+}
+
+public class ItemCategoryResult
+{
+    [JsonProperty("result")]
+    public List<ItemCategory> Result { get; set; }
+}
+
+
+// Root myDeserializedClass = JsonConvert.DeserializeObject<Root>(myJsonResponse);
+public class StatLine
+{
+    [JsonProperty("id")]
+    public string Id { get; set; }
+
+    [JsonProperty("text")]
+    public string Text { get; set; }
+
+    [JsonProperty("type")]
+    public string Type { get; set; }
+
+    [JsonProperty("option")]
+    public OptionsObject OptionsObject { get; set; }
+}
+
+public class OptionsObject
+{
+    [JsonProperty("options")]
+    public List<StatOption> Options { get; set; }
+}
+
+public class StatOption
+{
+    [JsonProperty("id")]
+    public int Id { get; set; }
+
+    [JsonProperty("text")]
+    public string Text { get; set; }
+}
+
+public class ItemStat
+{
+    [JsonProperty("label")]
+    public string Label { get; set; }
+
+    [JsonProperty("entries")]
+    public List<Entry> Entries { get; set; }
+}
+
+public class ItemStatResult
+{
+    [JsonProperty("result")]
+    public List<ItemStat> Result { get; set; }
+}
+
+
+// Root myDeserializedClass = JsonConvert.DeserializeObject<Root>(myJsonResponse);
+public class StaticData
+{
+    [JsonProperty("id")]
+    public string Id { get; set; }
+
+    [JsonProperty("text")]
+    public string Text { get; set; }
+
+    [JsonProperty("image")]
+    public string Image { get; set; }
+}
+
+public class StaticDataCategory
+{
+    [JsonProperty("id")]
+    public string Id { get; set; }
+
+    [JsonProperty("label")]
+    public string Label { get; set; }
+
+    [JsonProperty("entries")]
+    public List<StaticData> Entries { get; set; }
+}
+
+public class StaticDataResult
+{
+    [JsonProperty("result")]
+    public List<StaticDataCategory> Result { get; set; }
+}
+
+public interface IPoeOauthApi
+{
+    [Get("/league")]
+    // Add the optional parameters for realm, type (main, event, season), limit (Max 50) and offset (use with limit)
+    // For the enum and limit, create classes to represent them
+    Task<Response<List<League>>> GetLeagues([Query("realm")] Realm realm,
+        [Query("type")] LeagueType type,
+        [Query("limit")] int limit,
+        [Query("offset")] int offset);
+}
+
+public record RetryPolicy
+{
+    public string Policy { get; init; }
+    public string[] Rules { get; init; }
+    public Dictionary<string, Limit> Limits { get; init; }
+    public Dictionary<string, State> States { get; init; }
+    public int RetryAfter { get; init; }
+
+    public static RetryPolicy FromHttpResponse(HttpResponseMessage response)
+    {
+        var policy = "";
+        if (response.Headers.TryGetValues("X-Rate-Limit-Policy", out var policyValues))
+        {
+            policy = policyValues.FirstOrDefault();
+        }
+
+        List<string> rules = new();
+        if (response.Headers.TryGetValues("X-Rate-Limit-Rules", out var ruleValues))
+        {
+            rules = ruleValues.FirstOrDefault().Split(',').ToList();
+        }
+
+        var limits = new Dictionary<string, Limit>();
+        var states = new Dictionary<string, State>();
+        foreach (var rule in rules)
+        {
+            if (response.Headers.TryGetValues($"X-Rate-Limit-{rule}", out var limitValues))
+            {
+                var parts = limitValues.FirstOrDefault().Split(':');
+                limits[rule] = new Limit(int.Parse(parts[0]), int.Parse(parts[1]), int.Parse(parts[2]));
+            }
+
+            if (response.Headers.TryGetValues($"X-Rate-Limit-{rule}-State", out var stateValues))
+            {
+                var parts = stateValues.FirstOrDefault().Split(':');
+                states[rule] = new State(int.Parse(parts[0]), int.Parse(parts[1]), int.Parse(parts[2]));
+            }
+        }
+
+        var retryAfter = 0;
+        if (response.Headers.TryGetValues("Retry-After", out var retryAfterValues))
+        {
+            retryAfter = int.Parse(retryAfterValues.FirstOrDefault());
+        }
+
+        return new RetryPolicy
+        {
+            Policy = policy,
+            Rules = rules.ToArray(),
+            Limits = limits,
+            States = states,
+            RetryAfter = retryAfter
+        };
+    }
+}
+
+public record Limit(int MaximumHits, int Period, int TimeRestricted);
+
+public record State(int CurrentHitCount, int Period, int ActiveTimeRestricted);
+
+public record LeagueType : Enumeration<LeagueType, string>
+{
+    public static LeagueType Main = new("Main", "main");
+    public static LeagueType Event = new("Event", "event");
+    public static LeagueType Season = new("Season", "season");
+    private LeagueType(string name, string value) : base(name, value) { }
+    public override string ToString() { return Value; }
+}
+
+public record Realm : Enumeration<Realm, string>
+{
+    public static Realm Pc = new("PC", "pc");
+    public static Realm Xbox = new("Xbox", "xbox");
+    public static Realm Ps4 = new("Sony", "sony");
+    private Realm(string name, string value) : base(name, value) { }
+    public override string ToString() { return Value; }
+}
+
+public record League
+{
+    public string Id { get; init; }
+    public string Realm { get; init; }
+    public string Description { get; init; }
+    public string Rules { get; init; }
+    public string RegisterAt { get; init; }
+    public bool Event { get; init; }
+    public string Url { get; init; }
+    public string StartAt { get; init; }
+    public string EndAt { get; init; }
+    public bool TimedEvent { get; init; }
+    public bool ScoreEvent { get; init; }
+    public bool DelveEvent { get; init; }
 }
 
 #region Exchange ListingIds
 
 public record ExchangeOffer
 {
-    public ExchangeOffer(string Id,
-                         JObject Item,
-                         ExchangeDetails Listing)
+    public ExchangeOffer(string Id, JObject Item, ExchangeDetails Listing)
     {
         this.Id = Id;
         this.Item = Item;
@@ -49,8 +293,7 @@ public record ExchangeOffer
 
 public record Online
 {
-    public Online(string League,
-                  string Status)
+    public Online(string League, string Status)
     {
         this.League = League;
         this.Status = Status;
@@ -65,10 +308,7 @@ public record Online
 
 public record Account
 {
-    public Account(string Name,
-                   string LastCharacterName,
-                   Online Online,
-                   string Language)
+    public Account(string Name, string LastCharacterName, Online Online, string Language)
     {
         this.Name = Name;
         this.LastCharacterName = LastCharacterName;
@@ -91,9 +331,7 @@ public record Account
 
 public record Exchange
 {
-    public Exchange(string Currency,
-                    decimal Amount,
-                    string Whisper)
+    public Exchange(string Currency, decimal Amount, string Whisper)
     {
         this.Currency = Currency;
         this.Amount = Amount;
@@ -112,11 +350,7 @@ public record Exchange
 
 public record ExchangeItem
 {
-    public ExchangeItem(string Currency,
-                        decimal Amount,
-                        int Stock,
-                        string Id,
-                        string Whisper)
+    public ExchangeItem(string Currency, decimal Amount, int Stock, string Id, string Whisper)
     {
         this.Currency = Currency;
         this.Amount = Amount;
@@ -143,10 +377,7 @@ public record ExchangeItem
 
 public record ExchangeDetails
 {
-    public ExchangeDetails(DateTime Indexed,
-                           Account Account,
-                           IReadOnlyList<Offer> Offers,
-                           string Whisper)
+    public ExchangeDetails(DateTime Indexed, Account Account, IReadOnlyList<Offer> Offers, string Whisper)
     {
         this.Indexed = Indexed;
         this.Account = Account;
@@ -169,8 +400,7 @@ public record ExchangeDetails
 
 public record Offer
 {
-    public Offer(Exchange Exchange,
-                 ExchangeItem Item)
+    public Offer(Exchange Exchange, ExchangeItem Item)
     {
         this.Exchange = Exchange;
         this.Item = Item;
@@ -186,9 +416,9 @@ public record Offer
 public record ExchangePostResult
 {
     public ExchangePostResult(string Id,
-                              decimal? Complexity,
-                              IReadOnlyDictionary<string, ExchangeOffer> Offers,
-                              int Total)
+        decimal? Complexity,
+        IReadOnlyDictionary<string, ExchangeOffer> Offers,
+        int Total)
     {
         this.Id = Id;
         this.Complexity = Complexity;
@@ -215,10 +445,7 @@ public record ExchangePostResult
 
 public record ItemSearch
 {
-    public ItemSearch(string QueryId,
-                            decimal Complexity,
-                            IReadOnlyList<string> Results,
-                            int Total)
+    public ItemSearch(string QueryId, decimal Complexity, IReadOnlyList<string> Results, int Total)
     {
         this.QueryId = QueryId;
         this.Complexity = Complexity;
@@ -243,10 +470,7 @@ public record ItemSearch
 
 public record Crafted
 {
-    public Crafted(string Name,
-                   string Tier,
-                   int Level,
-                   IReadOnlyList<Magnitude> Magnitudes)
+    public Crafted(string Name, string Tier, int Level, IReadOnlyList<Magnitude> Magnitudes)
     {
         this.Name = Name;
         this.Tier = Tier;
@@ -269,10 +493,7 @@ public record Crafted
 
 public record Explicit
 {
-    public Explicit(string Name,
-                    string Tier,
-                    int Level,
-                    IReadOnlyList<Magnitude> Magnitudes)
+    public Explicit(string Name, string Tier, int Level, IReadOnlyList<Magnitude> Magnitudes)
     {
         this.Name = Name;
         this.Tier = Tier;
@@ -296,13 +517,13 @@ public record Explicit
 public record Extended
 {
     public Extended(double Dps,
-                    double Pdps,
-                    double Edps,
-                    bool DpsAug,
-                    bool PdpsAug,
-                    Mods Mods,
-                    Hashes Hashes,
-                    string Text)
+        double Pdps,
+        double Edps,
+        bool DpsAug,
+        bool PdpsAug,
+        Mods Mods,
+        Hashes Hashes,
+        string Text)
     {
         this.Dps = Dps;
         this.Pdps = Pdps;
@@ -342,8 +563,8 @@ public record Extended
 public record Hashes
 {
     public Hashes(IReadOnlyList<List<JObject>> Explicit,
-                  IReadOnlyList<List<JObject>> Implicit,
-                  IReadOnlyList<List<JObject>> Crafted)
+        IReadOnlyList<List<JObject>> Implicit,
+        IReadOnlyList<List<JObject>> Crafted)
     {
         this.Explicit = Explicit;
         this.Implicit = Implicit;
@@ -362,10 +583,7 @@ public record Hashes
 
 public record Implicit
 {
-    public Implicit(string Name,
-                    string Tier,
-                    int Level,
-                    IReadOnlyList<Magnitude> Magnitudes)
+    public Implicit(string Name, string Tier, int Level, IReadOnlyList<Magnitude> Magnitudes)
     {
         this.Name = Name;
         this.Tier = Tier;
@@ -388,10 +606,7 @@ public record Implicit
 
 public record Influences
 {
-    public Influences(bool Shaper)
-    {
-        this.Shaper = Shaper;
-    }
+    public Influences(bool Shaper) { this.Shaper = Shaper; }
 
     [JsonProperty("shaper")]
     public bool Shaper { get; init; }
@@ -400,29 +615,29 @@ public record Influences
 public record Item
 {
     public Item(bool Verified,
-                int W,
-                int H,
-                string Icon,
-                string League,
-                string Id,
-                IReadOnlyList<Socket> Sockets,
-                string Name,
-                string TypeLine,
-                string BaseType,
-                bool Identified,
-                int Ilvl,
-                string Note,
-                IReadOnlyList<Property> Properties,
-                IReadOnlyList<Requirement> Requirements,
-                IReadOnlyList<string> ImplicitMods,
-                IReadOnlyList<string> ExplicitMods,
-                int FrameType,
-                Extended Extended,
-                IReadOnlyList<string> CraftedMods,
-                IReadOnlyList<string> FlavourText,
-                bool? Corrupted,
-                Influences Influences,
-                bool? Shaper)
+        int W,
+        int H,
+        string Icon,
+        string League,
+        string Id,
+        IReadOnlyList<Socket> Sockets,
+        string Name,
+        string TypeLine,
+        string BaseType,
+        bool Identified,
+        int Ilvl,
+        string Note,
+        IReadOnlyList<Property> Properties,
+        IReadOnlyList<Requirement> Requirements,
+        IReadOnlyList<string> ImplicitMods,
+        IReadOnlyList<string> ExplicitMods,
+        int FrameType,
+        Extended Extended,
+        IReadOnlyList<string> CraftedMods,
+        IReadOnlyList<string> FlavourText,
+        bool? Corrupted,
+        Influences Influences,
+        bool? Shaper)
     {
         this.Verified = Verified;
         this.W = W;
@@ -525,12 +740,7 @@ public record Item
 
 public record Listing
 {
-    public Listing(string Method,
-                   DateTime Indexed,
-                   Stash Stash,
-                   string Whisper,
-                   Account Account,
-                   Price Price)
+    public Listing(string Method, DateTime Indexed, Stash Stash, string Whisper, Account Account, Price Price)
     {
         this.Method = Method;
         this.Indexed = Indexed;
@@ -561,9 +771,7 @@ public record Listing
 
 public record Magnitude
 {
-    public Magnitude(string Hash,
-                     double Min,
-                     double Max)
+    public Magnitude(string Hash, double Min, double Max)
     {
         this.Hash = Hash;
         this.Min = Min;
@@ -582,9 +790,7 @@ public record Magnitude
 
 public record Mods
 {
-    public Mods(IReadOnlyList<Explicit> Explicit,
-                IReadOnlyList<Implicit> Implicit,
-                IReadOnlyList<Crafted> Crafted)
+    public Mods(IReadOnlyList<Explicit> Explicit, IReadOnlyList<Implicit> Implicit, IReadOnlyList<Crafted> Crafted)
     {
         this.Explicit = Explicit;
         this.Implicit = Implicit;
@@ -603,10 +809,7 @@ public record Mods
 
 public record Price
 {
-    public Price(string Tag,
-                 string Type,
-                 double Amount,
-                 string Currency)
+    public Price(string Tag, string Type, double Amount, string Currency)
     {
         this.Tag = Tag;
         this.Type = Type;
@@ -629,10 +832,7 @@ public record Price
 
 public record Property
 {
-    public Property(string Name,
-                    IReadOnlyList<List<JObject>> Values,
-                    int DisplayMode,
-                    int? Type)
+    public Property(string Name, IReadOnlyList<List<JObject>> Values, int DisplayMode, int? Type)
     {
         this.Name = Name;
         this.Values = Values;
@@ -655,10 +855,7 @@ public record Property
 
 public record Requirement
 {
-    public Requirement(string Name,
-                       IReadOnlyList<List<JObject>> Values,
-                       int DisplayMode,
-                       int Type)
+    public Requirement(string Name, IReadOnlyList<List<JObject>> Values, int DisplayMode, int Type)
     {
         this.Name = Name;
         this.Values = Values;
@@ -681,9 +878,7 @@ public record Requirement
 
 public record SearchResult
 {
-    public SearchResult(string Id,
-                        Listing Listing,
-                        Item Item)
+    public SearchResult(string Id, Listing Listing, Item Item)
     {
         this.Id = Id;
         this.Listing = Listing;
@@ -702,14 +897,11 @@ public record SearchResult
 
 public record SearchGetResult
 {
-    public SearchGetResult(IReadOnlyList<SearchResult> Results)
-    {
-        this.Results = Results;
-    }
+    public SearchGetResult(IReadOnlyList<SearchResult> Results) { this.Results = Results; }
 
     [JsonProperty("result")]
     public IReadOnlyList<SearchResult> Results { get; init; }
-    
+
     public SearchGetResult Join(SearchGetResult next)
     {
         var results = new List<SearchResult>(Results);
@@ -720,9 +912,7 @@ public record SearchGetResult
 
 public record Socket
 {
-    public Socket(int Group,
-                  string Attr,
-                  string SColour)
+    public Socket(int Group, string Attr, string SColour)
     {
         this.Group = Group;
         this.Attr = Attr;
@@ -741,9 +931,7 @@ public record Socket
 
 public record Stash
 {
-    public Stash(string Name,
-                 int X,
-                 int Y)
+    public Stash(string Name, int X, int Y)
     {
         this.Name = Name;
         this.X = X;

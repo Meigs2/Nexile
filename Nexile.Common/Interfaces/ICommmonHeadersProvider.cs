@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Nexile.Common.Interfaces;
 
-public interface ICommonRequestHeadersProvider
+public interface ICommmonHeadersProvider
 {
     List<KeyValuePair<string,string>> Headers { get; }
 }

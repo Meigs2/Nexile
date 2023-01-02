@@ -3,7 +3,7 @@ using Nexile.Common.Interfaces;
 
 namespace Nexile.Common;
 
-public class NexileUserAgentHeaderProvider : ICommonRequestHeadersProvider
+public class NexileUserAgentHeaderProvider : ICommmonHeadersProvider
 {
     /// <inheritdoc />
     public List<KeyValuePair<string, string>> Headers { get; } = new()

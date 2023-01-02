@@ -2,7 +2,7 @@
 
 namespace Nexile.PathOfExile;
 
-public interface IPoeSessionIdProvider
+public interface ISessionIdProvider
 {
     public Option<string> SessionId { get; }
     void SetSessionId(string sessionId);

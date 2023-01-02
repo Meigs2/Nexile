@@ -14,6 +14,9 @@ namespace Nexile.PathOfExile;
 
 public interface IPathOfExileApi
 {
+    public const string TradeLiveSearchBaseUrl = "wss://www.pathofexile.com";
+    public const string TradeApiBaseUrl = "https://www.pathofexile.com";
+    public const string OAuthApiBaseUrl = "https://api.pathofexile.com";
     Task<Result<ExchangePostResult>> SearchExchange(ExchangeQuery query);
     Task<Result<TradeSearch>> CreateItemSearch(ItemSearchQuery query);
     Task<Result<SearchGetResult>> GetItemSearchResults(TradeSearch search, int numberOfResults = 10);
@@ -21,6 +24,11 @@ public interface IPathOfExileApi
     
     List<LiveSearch> LiveSearches { get; }
     Result<LiveSearch> SubscribeLiveSearch(TradeSearch search);
+    
+    Task<Result<ItemCategoryResult>> GetItemCategories();
+    Task<Result<ItemStatResult>> GetItemStats();
+    Task<Result<StaticDataResult>> GetStaticData();
+
 }
 
 public record ItemSearchQuery
@@ -33,9 +41,9 @@ public record TradeSearch
 {
     public string QueryId { get; init; }
     public decimal? Complexity { get; init; }
-    public string LeagueName => OriginalQuery?.LeagueName;
-    public ItemSearchQuery OriginalQuery { get; init; }
+    public ItemSearchQuery Query { get; init; }
     public IReadOnlyList<string> ListingIds { get; init; }
+    public string LeagueName => Query?.LeagueName;
     public int NumberOfResults { get; init; }
 }
 

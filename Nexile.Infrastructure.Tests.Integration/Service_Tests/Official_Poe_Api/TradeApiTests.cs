@@ -38,7 +38,7 @@ public class Exchange_Api : RateLimitedServiceTestFixture
         LeagueName = "Standard"
     };
 
-    public static TradeSearch ClawQuerySearch = new() { OriginalQuery = ClawQuery, Complexity = 4, QueryId = "m4kwH6" };
+    public static TradeSearch ClawQuerySearch = new() { Query = ClawQuery, Complexity = 4, QueryId = "m4kwH6" };
 
     [Test]
     public async Task Can_Create_Item_Search()
@@ -64,6 +64,30 @@ public class Exchange_Api : RateLimitedServiceTestFixture
         search.Log();
         
         var result = await _poeService.GetItemSearchResults(search.Value);
+        result.IsSuccess.Should().BeTrue();
+        result.Log();
+    }
+    
+    [Test]
+    public async Task Can_Get_Static_Items_Data()
+    {
+        var result = await _poeService.GetItemCategories();
+        result.IsSuccess.Should().BeTrue();
+        result.Log();
+    }
+    
+    [Test]
+    public async Task Can_Get_Static_Item_Stats()
+    {
+        var result = await _poeService.GetItemStats();
+        result.IsSuccess.Should().BeTrue();
+        result.Log();
+    }
+    
+    [Test]
+    public async Task Can_Get_Static_Item_Filters()
+    {
+        var result = await _poeService.GetStaticData();
         result.IsSuccess.Should().BeTrue();
         result.Log();
     }

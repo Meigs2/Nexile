@@ -2,9 +2,9 @@
 
 namespace Nexile.PathOfExile;
 
-public class PoeSessionIdProvider : IPoeSessionIdProvider
+public class SessionIdProvider : ISessionIdProvider
 {
-    public PoeSessionIdProvider(SessionIdOptions options)
+    public SessionIdProvider(SessionIdOptions options)
     {
         SessionId = options.SessionId;
     }

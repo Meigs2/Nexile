@@ -6,9 +6,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Meigs2.Functional" Version="0.1.1-alpha21" />
-      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
-      <PackageReference Include="RestEase.HttpClientFactory" Version="1.5.7" />
+      <PackageReference Include="Meigs2.Functional" Version="0.1.1-alpha23" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="7.0.0" />
+      <PackageReference Include="OAuth2ClientHandler" Version="2.0.0.36" />
+      <PackageReference Include="RestEase.HttpClientFactory" Version="1.6.1" />
     </ItemGroup>
 
     <ItemGroup>

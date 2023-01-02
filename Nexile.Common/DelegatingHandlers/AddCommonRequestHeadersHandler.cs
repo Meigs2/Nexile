@@ -7,17 +7,17 @@ namespace Nexile.Common.DelegatingHandlers;
 
 public class AddCommonRequestHeadersHandler : DelegatingHandler
 {
-    private readonly ICommonRequestHeadersProvider _commonRequestHeadersProvider;
+    private readonly ICommmonHeadersProvider _commmonHeadersProvider;
 
-    public AddCommonRequestHeadersHandler(ICommonRequestHeadersProvider commonRequestHeadersProvider)
+    public AddCommonRequestHeadersHandler(ICommmonHeadersProvider commmonHeadersProvider)
     {
-        _commonRequestHeadersProvider = commonRequestHeadersProvider;
+        _commmonHeadersProvider = commmonHeadersProvider;
     }
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
                                                            CancellationToken cancellationToken)
     {
-        foreach (var header in _commonRequestHeadersProvider.Headers)
+        foreach (var header in _commmonHeadersProvider.Headers)
         {
             request.Headers.Add(header.Key, header.Value);
         }
